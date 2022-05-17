@@ -1,13 +1,16 @@
 import sys
-import os
+import pdb
 
 from queue import PriorityQueue
 
 import selenium
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
 
 import chromedriver_autoinstaller
+
+
 
 chromedriver_autoinstaller.install() # install and add to path
 driver = webdriver.Chrome()
@@ -16,18 +19,20 @@ def main():
     # TODO: add another command line argument m that means all phrases of size 1 to m
     # will be considered (or add two (n and m) so that all phrases of size n to m are considered)
 
-    if len(sys.argv) not in [3, 4]:
+    if len(sys.argv) not in [4, 5]:
         print("\n")
         print("ERROR: incorrect input")
         sys.exit("Correct usage: python scraper.py (str)link (int)num_keywords (bool)save_or_not ((str)filetype)")
 
-    link = sys.argv[0]
-    num_keywords = sys.argv[1]
-    save_to_file = sys.argv[2]  # if this is true, we will save the output to a txt file
-    file_type = sys.argv[3]  # this should be either txt or csv
+    link = sys.argv[1]
+    num_keywords = sys.argv[2]
+    save_to_file = sys.argv[3]  # if this is true, we will save the output to a txt file
+    if len(sys.argv) == 5:
+        file_type = sys.argv[4]  # this should be either txt or csv
 
-    positive_corpus_PQ = get_positive_corpus(link)
-    negative_corpus_PQ = get_negative_corpus(link)
+    positive_corpus_PQ = get_corpus(link, positive=True)
+    negative_corpus_PQ = get_corpus(link, positive=False)
+    driver.quit()
 
     top_n_positive_keywords = get_top_n_keywords(positive_corpus_PQ, num_keywords)
     top_n_negative_keywords = get_top_n_keywords(negative_corpus_PQ, num_keywords)
@@ -36,36 +41,75 @@ def main():
     print_output(top_n_positive_keywords, top_n_negative_keywords)
 
 
-def get_positive_corpus(link):
+def get_corpus(link, positive):
     """
     scrape positive reviews and add all words to a priority
     queue where the priority is the num of occurances (MAX-HEAP)
     return the priority queue
     """
     driver.get(link)
+    
     q = PriorityQueue()
-    # first make a dictionary mapping each word to the amount of times it occurs
+    occurrences_per_word = {}
 
+    # click button to take us to the reviews
+    driver.find_element(
+        By.ID, 
+        "acrCustomerReviewText"
+    ).click()
+
+    # if positive get all 5 star then 4 star reviews, else get all 2 star then 1 star
+    if positive:
+        # get buttons for all 5 and 4 star reviews
+        button_one = driver.find_element(
+            By.XPATH,
+            "/html/body/div[1]/div[3]/div[9]/div[30]/div/div/div[1]/span[1]/div[1]/div/div/span/table[2]/tbody/tr[1]/td[2]/a"
+        )
+        button_two = driver.find_element(
+            By.XPATH,
+            "/html/body/div[1]/div[3]/div[9]/div[30]/div/div/div[1]/span[1]/div[1]/div/div/span/table[2]/tbody/tr[2]/td[2]/a"
+        )
+    else:
+        button_one = driver.find_element(
+            By.XPATH,
+            "/html/body/div[1]/div[3]/div[9]/div[30]/div/div/div[1]/span[1]/div[1]/div/div/span/table[2]/tbody/tr[4]/td[2]/a"
+        )
+        button_two = driver.find_element(
+            By.XPATH,
+            "/html/body/div[1]/div[3]/div[9]/div[30]/div/div/div[1]/span[1]/div[1]/div/div/span/table[2]/tbody/tr[5]/td[2]/a"
+        )
+    
+    button_one.click()
+    put_reviews_on_page_into_dictionary(occurrences_per_word)
+
+    driver.get(link)
+    button_two.click() 
+    put_reviews_on_page_into_dictionary(occurrences_per_word)
 
     # then loop through the items of the dictionary and add each word to a priority queue
-
-    driver.quit()
+    for word, total in occurrences_per_word.items():
+        # we use -total to transform it into a max heap
+        q.put((-total, word))  # total occurrences is the priority
     return q
 
 
-def get_negative_corpus(link):
+def put_reviews_on_page_into_dictionary(occurrences_per_word):
     """
-    scrape negative reviews and add all words to a priority
-    queue where the priority is the num of occurances (MAX-HEAP)
+    Once we have navigated to a page containing all reviews of a certain star amount, this will comb through every review
+    and add the words into the occurrences_per_word dictionary
     """
     pass
 
 
-def get_top_n_keywords(corpus, num_keywords):
+def get_top_n_keywords(q, num_keywords):
     """
     should return n tuples, each containing a word and the num of times it occurs in corpus
     """
-    pass
+    top_n_keywords = []
+    for _ in range(num_keywords):
+        next_word_and_total = q.get()
+        top_n_keywords.append((next_word_and_total[1], -next_word_and_total[0]))  # tuple will be of form (word, total occurrences)
+    return top_n_keywords
 
 
 def print_output(top_n_positive_keywords, top_n_negative_keywords):
