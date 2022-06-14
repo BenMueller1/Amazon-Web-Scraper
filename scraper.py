@@ -11,14 +11,19 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 
 from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+nltk.download('stopwords')
 
 import chromedriver_autoinstaller
-
 
 
 chromedriver_autoinstaller.install() # install and add to path
 driver = webdriver.Chrome()
 WAIT_TIME = 3 # MAKE THIS HIGHER if we are getting "element is not attached to page doument" error
+
+
+''' TODO Apply to pitatech once I finish this'''
+''' Once I finish 3 projects apply to Amazon fall'''
 
 def main():
     # TODO: add another command line argument m that means all phrases of size 1 to m
@@ -35,8 +40,10 @@ def main():
     if len(sys.argv) == 5:
         file_type = sys.argv[4]  # this should be either txt or csv
 
-    positive_corpus_PQ = get_corpus(link, positive=True)
-    negative_corpus_PQ = get_corpus(link, positive=False)
+    positive_corpus = get_corpus(link, positive=True)
+    negative_corpus = get_corpus(link, positive=False)
+    positive_corpus_PQ = put_into_PQ(positive_corpus)
+    negative_corpus_PQ = put_into_PQ(negative_corpus)
     driver.quit()
 
     top_n_positive_keywords = get_top_n_keywords(positive_corpus_PQ, num_keywords)
@@ -75,10 +82,6 @@ def get_corpus(link, positive):
         put_reviews_on_page_into_dictionary(occurrences_per_word)  # pretty sure dict will be passed by reference, so don't need this method to return it
         driver.get(one_star_link)
         put_reviews_on_page_into_dictionary(occurrences_per_word)
-
-    # remove things like punctuation and function words (find a library of function words and punctuation online and put it into a set)
-    occurrences_per_word = purge(occurrences_per_word)
-
 
     return occurrences_per_word
 
@@ -160,12 +163,6 @@ def get_top_n_keywords(q, num_keywords, occurrences_per_word):
         top_n_keywords.append((next_word_and_total[1], -next_word_and_total[0]))  # tuple will be of form (word, total occurrences)
     return top_n_keywords
 
-def purge(occurrences_per_word):
-    """
-    get rid of punctuation and function words
-    """
-    pass
-
 
 def print_output(top_n_positive_keywords, top_n_negative_keywords):
     """
@@ -197,6 +194,12 @@ def save_output_to_csv_file(top_n_positive_keywords, top_n_negative_keywords):
     (organized in a manner that makes it easy to read data in for future projects)
     """
     pass
+
+
+def put_into_PQ(corpus):
+    '''
+    maybe try using that one optimization I learned in leetcode to keep the size of the PQ less than or equal to n (where n is num of words we are looking for)
+    '''
 
 
 def extract_product_id(link):
@@ -235,10 +238,11 @@ def put_tokens_into_dict(text, occurrences_per_word):
         words = word_tokenize(text)
 
     for word in words:
-        if word in occurrences_per_word.keys():
-            occurrences_per_word[word] += 1
-        else:
-            occurrences_per_word[word] = 1
+        if word.lower() not in stopwords.words('english') and word.upper().isupper():    #word.upper().isupper() will return false if there are no letters in the string (we only want words, no punctuation)
+            if word in occurrences_per_word.keys():
+                occurrences_per_word[word] += 1
+            else:
+                occurrences_per_word[word] = 1
     return occurrences_per_word
 
 if __name__ == "__main__":
