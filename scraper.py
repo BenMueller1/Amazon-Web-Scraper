@@ -48,49 +48,48 @@ def get_corpus(link, positive):
     return the priority queue
     """
     driver.get(link)
-    
-    q = PriorityQueue()
     occurrences_per_word = {}
-
-    # click button to take us to the reviews
-    driver.find_element(
-        By.ID, 
-        "acrCustomerReviewText"
-    ).click()
-
+    product_id = extract_product_id(link)
+    breakpoint()
     # if positive get all 5 star then 4 star reviews, else get all 2 star then 1 star
-    if positive:
-        # get buttons for all 5 and 4 star reviews
-        button_one = driver.find_element(
-            By.XPATH,
-            "/html/body/div[1]/div[3]/div[9]/div[30]/div/div/div[1]/span[1]/div[1]/div/div/span/table[2]/tbody/tr[1]/td[2]/a"
-        )
-        button_two = driver.find_element(
-            By.XPATH,
-            "/html/body/div[1]/div[3]/div[9]/div[30]/div/div/div[1]/span[1]/div[1]/div/div/span/table[2]/tbody/tr[2]/td[2]/a"
-        )
-    else:
-        button_one = driver.find_element(
-            By.XPATH,
-            "/html/body/div[1]/div[3]/div[9]/div[30]/div/div/div[1]/span[1]/div[1]/div/div/span/table[2]/tbody/tr[4]/td[2]/a"
-        )
-        button_two = driver.find_element(
-            By.XPATH,
-            "/html/body/div[1]/div[3]/div[9]/div[30]/div/div/div[1]/span[1]/div[1]/div/div/span/table[2]/tbody/tr[5]/td[2]/a"
-        )
+
+    # product_id = 1612680194 # find way to extract this from the link that was passed in
     
-    button_one.click()
-    put_reviews_on_page_into_dictionary(occurrences_per_word)
+    if positive:
+        # get 5 and 4 star reviews
+        five_star_link = f"https://www.amazon.com/product-reviews/{product_id}/ref=acr_dp_hist_5?ie=UTF8&filterByStar=five_star&reviewerType=all_reviews#reviews-filter-bar"
+        four_star_link = f"https://www.amazon.com/product-reviews/{product_id}/ref=acr_dp_hist_5?ie=UTF8&filterByStar=four_star&reviewerType=all_reviews#reviews-filter-bar"
+        driver.get(five_star_link)
+        breakpoint()
+        put_reviews_on_page_into_dictionary(occurrences_per_word)  # pretty sure dict will be passed by reference, so don't need this method to return it
+        driver.get(four_star_link)
+        put_reviews_on_page_into_dictionary(occurrences_per_word)
 
-    driver.get(link)
-    button_two.click() 
-    put_reviews_on_page_into_dictionary(occurrences_per_word)
+    else:
+        # get 2 and 1 star reviews
+        five_star_link = f"https://www.amazon.com/product-reviews/{product_id}/ref=acr_dp_hist_5?ie=UTF8&filterByStar=two_star&reviewerType=all_reviews#reviews-filter-bar"
+        four_star_link = f"https://www.amazon.com/product-reviews/{product_id}/ref=acr_dp_hist_5?ie=UTF8&filterByStar=one_star&reviewerType=all_reviews#reviews-filter-bar"
+        driver.get(five_star_link)
+        put_reviews_on_page_into_dictionary(occurrences_per_word)  # pretty sure dict will be passed by reference, so don't need this method to return it
+        driver.get(four_star_link)
+        put_reviews_on_page_into_dictionary(occurrences_per_word)
 
-    # then loop through the items of the dictionary and add each word to a priority queue
-    for word, total in occurrences_per_word.items():
-        # we use -total to transform it into a max heap
-        q.put((-total, word))  # total occurrences is the priority
-    return q
+    return occurrences_per_word
+
+
+def extract_product_id(link):
+    product_id = ""
+    for i in range(len(link)):
+        try:
+            if link[i] == "/" and link[i+1] == "d" and link[i+2] == "p" and link[i+3] == "/":
+                i += 4
+                while link[i] != "/":
+                    product_id += link[i]
+                    i += 1
+                return product_id
+        except:  # meaining we have gone out of bounds, which is only possible if an improperly formatted link was provided
+            sys.exit("ERROR: Provided link is not formatted properly. Please double check that you copied the link exactly.")
+
 
 
 def put_reviews_on_page_into_dictionary(occurrences_per_word):
@@ -101,10 +100,16 @@ def put_reviews_on_page_into_dictionary(occurrences_per_word):
     pass
 
 
-def get_top_n_keywords(q, num_keywords):
+def get_top_n_keywords(q, num_keywords, occurrences_per_word):
     """
     should return n tuples, each containing a word and the num of times it occurs in corpus
     """
+    #  loop through the items of the dictionary and add each word to a priority queue
+    q = PriorityQueue()
+    for word, total in occurrences_per_word.items():
+        # we use -total to transform it into a max heap
+        q.put((-total, word))  # total occurrences is the priority
+
     top_n_keywords = []
     for _ in range(num_keywords):
         next_word_and_total = q.get()
