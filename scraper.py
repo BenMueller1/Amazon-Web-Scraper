@@ -21,10 +21,6 @@ chromedriver_autoinstaller.install() # install and add to path
 driver = webdriver.Chrome()
 WAIT_TIME = 3 # MAKE THIS HIGHER if we are getting "element is not attached to page doument" error
 
-
-''' TODO Apply to pitatech once I finish this'''
-''' Once I finish 3 projects apply to Amazon fall'''
-
 def main():
     # TODO: add another command line argument m that means all phrases of size 1 to m
     # will be considered (or add two (n and m) so that all phrases of size n to m are considered)
@@ -163,14 +159,6 @@ def get_top_n_keywords(q, num_keywords, occurrences_per_word):
         top_n_keywords.append((next_word_and_total[1], -next_word_and_total[0]))  # tuple will be of form (word, total occurrences)
     return top_n_keywords
 
-
-def print_output(top_n_positive_keywords, top_n_negative_keywords):
-    """
-    prints output of the program
-    """
-    pass
-
-
 def save_file(save_to_file, file_type, top_n_positive_keywords, top_n_negative_keywords):
     if not save_to_file:
         return
@@ -181,26 +169,6 @@ def save_file(save_to_file, file_type, top_n_positive_keywords, top_n_negative_k
         save_output_to_txt_file(top_n_positive_keywords, top_n_negative_keywords)
     else:
         raise Exception("filetype should be either csv or txt")
-
-def save_output_to_txt_file(top_n_positive_keywords, top_n_negative_keywords):
-    """
-    saves output to a txt file
-    """
-    pass
-
-def save_output_to_csv_file(top_n_positive_keywords, top_n_negative_keywords):
-    """
-    saves output to a neatly organized csv file
-    (organized in a manner that makes it easy to read data in for future projects)
-    """
-    pass
-
-
-def put_into_PQ(corpus):
-    '''
-    maybe try using that one optimization I learned in leetcode to keep the size of the PQ less than or equal to n (where n is num of words we are looking for)
-    '''
-
 
 def extract_product_id(link):
     product_id = ""
